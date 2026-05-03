@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>歌單</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="歌單" />
+
+  <style>
+    :root {
+      --bg:        #ffffff;
+      --bg2:       #f4f4f4;
+      --surface:   #ffffff;
+      --border:    #e0e0e0;
+      --border2:   #c8c8c8;
+      --accent:    #1a1a1a;
+      --accent-l:  #444444;
+      --danger:    #c0392b;
+      --text:      #111111;
+      --text-2:    #444444;
+      --text-3:    #888888;
+      --font-size:    34px;
+      --item-spacing: 8px;
+      --item-padding: 8px;
+      --radius:       10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ── */
+    header {
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+      background: var(--surface);
+      border-bottom: 2px solid var(--text);
+      padding: 14px 18px 0;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .header-title {
+      font-family: Georgia, 'Noto Serif', 'Times New Roman', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 3px;
+    }
+
+    .header-sub {
+      font-size: 13px;
+      color: var(--text-3);
+      letter-spacing: 1px;
+    }
+
+    .song-count {
+      margin-left: auto;
+      font-size: 13px;
+      color: var(--text-3);
+      letter-spacing: 1px;
+    }
+
+    /* ── 分頁標籤 ── */
+    .tabs {
+      display: flex;
+      gap: 0;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px 0;
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--text-3);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: color 0.18s, border-color 0.18s;
+    }
+
+    .tab.active {
+      color: var(--text);
+      border-bottom-color: var(--text);
+    }
+
+    /* ── 純覽切換 ── */
+    .btn-view {
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border2);
+      background: transparent;
+      color: var(--text-2);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-view.active {
+      background: var(--text);
+      color: #fff;
+      border-color: var(--text);
+    }
+
+    .btn-view:active { opacity: 0.75; }
+
+    /* ── 各頁面 ── */
+    .page {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    .page.show { display: flex; }
+
+    /* ══ 搜尋頁 ══ */
+    .search-page-header {
+      flex-shrink: 0;
+      padding: 10px 14px 8px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .search-wrap {
+      position: relative;
+      flex: 1;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+      font-size: 16px;
+      padding: 9px 14px 9px 38px;
+      background: var(--bg2);
+      color: var(--text);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      outline: none;
+      -webkit-appearance: none;
+      transition: border-color 0.18s;
+    }
+
+    .search-wrap input:focus { border-color: var(--text); }
+    .search-wrap input::placeholder { color: var(--text-3); }
+
+    .search-icon {
+      position: absolute;
+      left: 12px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      color: var(--text-3);
+      pointer-events: none;
+      font-weight: 700;
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+    }
+
+    /* 搜尋模式標籤 */
+    .search-mode-tabs {
+      display: flex;
+      gap: 6px;
+    }
+
+    .search-mode-btn {
+      flex: 1;
+      padding: 6px 0;
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--text-3);
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .search-mode-btn.active {
+      background: var(--text);
+      color: #fff;
+      border-color: var(--text);
+    }
+
+    /* 字體大小 / 間距控制 */
+    .browse-controls {
+      flex-shrink: 0;
+      display: flex;
+      gap: 8px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease;
+      overflow: hidden;
+      max-height: 60px;
+      opacity: 1;
+    }
+
+    /* 純覽模式下隱藏 browse-controls */
+    body.clean .browse-controls {
+      max-height: 0;
+      opacity: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      border-bottom-color: transparent;
+    }
+
+    .font-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 10px;
+      flex: 1;
+    }
+
+    .font-label { font-size: 12px; color: var(--text-3); }
+
+    .font-btn {
+      width: 26px; height: 26px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      color: var(--text-2);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1;
+      transition: background 0.12s;
+    }
+
+    .font-btn:active { background: var(--text); color: #fff; transform: scale(0.9); }
+
+    .font-val {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      min-width: 24px;
+      text-align: center;
+    }
+
+    /* 歌曲列表 */
+    .list-wrap {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .list { padding: 8px 12px 30px; }
+
+    .list-col-head {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--text-3);
+      padding: 4px 6px 7px;
+      font-weight: 700;
+    }
+
+    /* 歌手搜尋結果標題 */
+    .artist-result-header {
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--text-3);
+      padding: 6px 6px 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .artist-result-header span {
+      color: var(--text);
+    }
+
+    /* 歌曲卡片 */
+    .item {
+      display: flex;
+      align-items: center;
+      padding: var(--item-padding) 12px;
+      margin-bottom: var(--item-spacing);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: pan-y;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 長按進度條 */
+    .item::after {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 0%;
+      background: rgba(192, 57, 43, 0.1);
+      transition: none;
+      border-radius: var(--radius);
+    }
+
+    .item.pressing::after {
+      width: 100%;
+      transition: width 1s linear;
+    }
+
+    .item.shake {
+      animation: shake 0.35s ease;
+      background: rgba(192, 57, 43, 0.05);
+      border-color: var(--danger);
+    }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-6px); }
+      40%      { transform: translateX(5px); }
+      60%      { transform: translateX(-4px); }
+      80%      { transform: translateX(3px); }
+    }
+
+    .item:active:not(.shake) { transform: scale(0.985); }
+
+    /* 序號 — 黑色、IBM Plex Mono、尽可能大 */
+    .item-num {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: calc(var(--font-size) * 0.72);
+      color: #000000;
+      font-weight: 700;
+      width: 2.4em;
+      text-align: right;
+      flex-shrink: 0;
+      margin-right: 14px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    body.clean .item-num { display: none; }
+    #page-browse .item-num,
+    #page-search .item-num { display: none; }
+
+    .item-name {
+      font-size: var(--font-size);
+      font-weight: 700;
+      color: var(--text);
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+    }
+
+    /* 歌手標籤（搜尋歌手時顯示） */
+    .item-artist {
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+      font-size: calc(var(--font-size) * 0.42);
+      font-weight: 500;
+      color: var(--text-3);
+      flex-shrink: 0;
+      margin-left: 8px;
+      white-space: nowrap;
+      display: none;
+    }
+
+    body.show-artist .item-artist,
+    body.search-show-artist #search-list .item-artist {
+      display: inline;
+    }
+
+    /* 純覽模式下強制隱藏歌手 */
+    body.clean .item-artist { display: none !important; }
+
+    /* 歌手按鈕 */
+    .btn-artist {
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border2);
+      background: var(--bg2);
+      color: var(--text-3);
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .btn-artist.active {
+      background: var(--text);
+      color: #fff;
+      border-color: var(--text);
+    }
+
+    .btn-artist:active { opacity: 0.75; }
+
+    /* 代號 — 黑色、IBM Plex Mono、放大 */
+    .item-code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: calc(var(--font-size) * 0.78);
+      font-weight: 700;
+      color: #000000;
+      padding: 3px 10px;
+      border-radius: 5px;
+      flex-shrink: 0;
+      margin-left: 10px;
+      letter-spacing: 2px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+    }
+
+    /* 純覽模式 */
+    body.clean .item { cursor: default; }
+    body.clean .item::after { display: none; }
+
+    /* 空結果 */
+    .empty {
+      text-align: center;
+      padding: 50px 20px;
+      color: var(--text-3);
+    }
+
+    .empty-line1 { font-family: Georgia, 'Noto Serif', 'Times New Roman', serif; font-size: 22px; margin-bottom: 8px; }
+    .empty-line2 { font-size: 14px; letter-spacing: 1px; }
+
+    /* ══ 新增頁 ══ */
+    .add-page {
+      padding: 18px 16px;
+      overflow-y: auto;
+    }
+
+    .add-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 16px;
+      margin-bottom: 12px;
+    }
+
+    .add-card-title {
+      font-family: Georgia, 'Noto Serif', 'Times New Roman', serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-2);
+      letter-spacing: 2px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .field-label {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--text-3);
+      font-weight: 700;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .field-wrap { margin-bottom: 12px; }
+    .field-wrap:last-of-type { margin-bottom: 0; }
+
+    input.field {
+      width: 100%;
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+      font-size: 20px;
+      padding: 12px 14px;
+      background: var(--bg2);
+      color: var(--text);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      outline: none;
+      -webkit-appearance: none;
+      transition: border-color 0.18s, box-shadow 0.18s;
+    }
+
+    input.field:focus {
+      border-color: var(--text);
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.07);
+    }
+
+    input.field::placeholder { color: var(--text-3); }
+
+    .btn-submit {
+      width: 100%;
+      font-family: Georgia, 'Noto Serif', 'Times New Roman', serif;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      padding: 14px;
+      background: var(--text);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .btn-submit:active { opacity: 0.82; transform: scale(0.98); }
+
+    .add-tip {
+      font-size: 12px;
+      color: var(--text-3);
+      text-align: center;
+      letter-spacing: 1px;
+      line-height: 1.8;
+      padding: 0 4px;
+    }
+
+    /* 備份管理區塊 */
+    .backup-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 16px;
+      margin-bottom: 12px;
+    }
+
+    .backup-card-title {
+      font-family: Georgia, 'Noto Serif', 'Times New Roman', serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-2);
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .backup-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .btn-backup {
+      flex: 1 1 calc(50% - 5px);
+      min-width: 0;
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 11px 8px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      text-align: center;
+    }
+
+    .btn-clear-full {
+      flex: 1 1 100%;
+    }
+
+    .btn-backup:active { opacity: 0.78; transform: scale(0.97); }
+
+    .btn-export {
+      background: var(--bg2);
+      color: var(--text);
+      border: 1.5px solid var(--border2);
+    }
+
+    .btn-clear {
+      background: transparent;
+      color: var(--danger);
+      border: 1.5px solid var(--danger);
+    }
+
+    .btn-import {
+      background: transparent;
+      color: var(--text-2);
+      border: 1.5px solid var(--border2);
+    }
+
+    /* ══ 單曲全螢幕 ══ */
+    .single {
+      display: none;
+      position: fixed; inset: 0;
+      z-index: 200;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 30px 24px;
+      background: #fff;
+    }
+
+    .single::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--text);
+    }
+
+    .single-inner {
+      position: relative; z-index: 1; width: 100%;
+      animation: fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .single-eyebrow {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      letter-spacing: 5px;
+      color: var(--text-3);
+      margin-bottom: 18px;
+      font-weight: 500;
+    }
+
+    .single-name {
+      font-family: Georgia, 'Noto Serif', 'Times New Roman', serif;
+      font-size: clamp(44px, 12vw, 78px);
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.15;
+      margin-bottom: 12px;
+      word-break: break-all;
+    }
+
+    .single-artist {
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+      font-size: clamp(18px, 4vw, 26px);
+      font-weight: 500;
+      color: var(--text-3);
+      margin-bottom: 28px;
+      min-height: 1.4em;
+    }
+
+    .single-divider {
+      width: 40px;
+      height: 2px;
+      background: var(--border2);
+      margin: 0 auto 24px;
+      border-radius: 1px;
+    }
+
+    .single-code-label {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      letter-spacing: 4px;
+      color: var(--text-3);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .single-code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: clamp(56px, 16vw, 96px);
+      font-weight: 700;
+      color: #000000;
+      letter-spacing: 8px;
+      line-height: 1;
+      margin-bottom: 40px;
+    }
+
+    .btn-back {
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 12px 34px;
+      background: transparent;
+      border: 1.5px solid var(--border2);
+      border-radius: 24px;
+      color: var(--text-2);
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.1s;
+    }
+
+    .btn-back:active { transform: scale(0.96); border-color: var(--text); }
+
+    /* 刪除確認彈窗 */
+    .del-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      z-index: 300;
+      background: rgba(0,0,0,0.35);
+      justify-content: center;
+      align-items: flex-end;
+    }
+
+    .del-overlay.show { display: flex; }
+
+    .del-sheet {
+      width: 100%;
+      background: var(--surface);
+      border-top: 2px solid var(--text);
+      border-radius: 16px 16px 0 0;
+      padding: 20px 20px 28px;
+      animation: slideUp 0.25s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .del-title {
+      font-family: Georgia, 'Noto Serif', 'Times New Roman', serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .del-sub {
+      font-size: 13px;
+      color: var(--text-3);
+      text-align: center;
+      margin-bottom: 20px;
+      letter-spacing: 1px;
+    }
+
+    .del-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .del-confirm {
+      padding: 14px;
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      background: var(--danger);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+
+    .del-confirm:active { opacity: 0.8; }
+
+    .del-cancel {
+      padding: 14px;
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      background: var(--bg2);
+      color: var(--text-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+
+    .del-cancel:active { opacity: 0.8; }
+
+    /* 純覽模式下隱藏分頁 add / search */
+    body.clean .tab[data-tab="add"],
+    body.clean .tab[data-tab="search"] { display: none; }
+
+    /* 純覽模式下隱藏標籤列（tabs），只剩 header-row */
+    body.clean .tabs { display: none; }
+
+    /* 純覽模式下隱藏 header-sub 和 song-count，最大化空間 */
+    body.clean .header-sub { display: none; }
+
+    /* scrollbar */
+    .list-wrap::-webkit-scrollbar { width: 3px; }
+    .list-wrap::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    /* 重複提示彈窗 */
+    .dup-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      z-index: 350;
+      background: rgba(0,0,0,0.35);
+      justify-content: center;
+      align-items: flex-end;
+    }
+
+    .dup-overlay.show { display: flex; }
+
+    .dup-sheet {
+      width: 100%;
+      background: var(--surface);
+      border-top: 2px solid var(--text);
+      border-radius: 16px 16px 0 0;
+      padding: 20px 20px 28px;
+      animation: slideUp 0.25s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    .dup-title {
+      font-family: Georgia, 'Noto Serif', 'Times New Roman', serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .dup-sub {
+      font-size: 13px;
+      color: var(--text-3);
+      text-align: center;
+      margin-bottom: 20px;
+      letter-spacing: 1px;
+      line-height: 1.8;
+    }
+
+    .dup-ok {
+      width: 100%;
+      padding: 14px;
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      background: var(--text);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+
+    .dup-ok:active { opacity: 0.8; }
+
+    /* PIN 彈窗 */
+    .pin-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      z-index: 400;
+      background: rgba(0,0,0,0.45);
+      justify-content: center;
+      align-items: flex-end;
+    }
+
+    .pin-overlay.show { display: flex; }
+
+    .pin-sheet {
+      width: 100%;
+      background: var(--surface);
+      border-top: 2px solid var(--danger);
+      border-radius: 16px 16px 0 0;
+      padding: 24px 20px 32px;
+      animation: slideUp 0.25s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    .pin-title {
+      font-family: Georgia, 'Noto Serif', 'Times New Roman', serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--danger);
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .pin-sub {
+      font-size: 13px;
+      color: var(--text-3);
+      text-align: center;
+      margin-bottom: 20px;
+      letter-spacing: 1px;
+    }
+
+    .pin-dots {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .pin-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid var(--border2);
+      background: var(--bg2);
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .pin-dot.filled {
+      background: var(--danger);
+      border-color: var(--danger);
+    }
+
+    .pin-dot.error {
+      background: var(--danger);
+      border-color: var(--danger);
+      animation: shake 0.35s ease;
+    }
+
+    .pin-keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .pin-key {
+      padding: 16px 0;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.12s, transform 0.1s;
+      text-align: center;
+    }
+
+    .pin-key:active { background: var(--border2); transform: scale(0.93); }
+
+    .pin-key.del-key {
+      font-size: 18px;
+      color: var(--text-2);
+    }
+
+    .pin-key.empty-key {
+      background: transparent;
+      border-color: transparent;
+      pointer-events: none;
+    }
+
+    .pin-cancel {
+      width: 100%;
+      padding: 13px;
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      background: var(--bg2);
+      color: var(--text-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+
+    .pin-cancel:active { opacity: 0.8; }
+
+    /* 隱藏的 file input */
+    #import-file-input { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-row">
+    <span class="header-title">歌單</span>
+    <span class="header-sub">KTV</span>
+    <span class="song-count" id="songCount">— 首</span>
+    <button class="btn-view" id="btnView" onclick="toggleClean()">純覽</button>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="browse" onclick="switchTab('browse')">歌曲列表</button>
+    <button class="tab" data-tab="search" onclick="switchTab('search')">搜　尋</button>
+    <button class="tab" data-tab="add" onclick="switchTab('add')">新　增</button>
+  </div>
+</header>
+
+<!-- 瀏覽頁 -->
+<div class="page show" id="page-browse">
+  <div class="browse-controls">
+    <div class="font-control">
+      <span class="font-label">字體</span>
+      <button class="font-btn" onclick="changeFont(-4)">−</button>
+      <span class="font-val" id="fontDisplay">34</span>
+      <button class="font-btn" onclick="changeFont(+4)">+</button>
+    </div>
+    <div class="font-control">
+      <span class="font-label">間距</span>
+      <button class="font-btn" onclick="changeSpacing(-2)">−</button>
+      <span class="font-val" id="spacingDisplay">8</span>
+      <button class="font-btn" onclick="changeSpacing(+2)">+</button>
+    </div>
+    <button class="btn-artist" id="btnArtist" onclick="toggleArtist()">歌手</button>
+  </div>
+  <div class="list-wrap">
+    <div class="list" id="list"></div>
+  </div>
+</div>
+
+<!-- 搜尋頁 -->
+<div class="page" id="page-search">
+  <div class="search-page-header">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <div class="search-wrap">
+        <span class="search-icon">搜</span>
+        <input type="text" id="search" placeholder="搜尋歌名或代號" oninput="renderSearch()" />
+      </div>
+    </div>
+    <div class="search-mode-tabs">
+      <button class="search-mode-btn active" id="modeSong" onclick="setSearchMode('song')">歌曲 / 代號</button>
+      <button class="search-mode-btn" id="modeArtist" onclick="setSearchMode('artist')">歌手</button>
+    </div>
+  </div>
+  <div class="list-wrap">
+    <div class="list" id="search-list"></div>
+  </div>
+</div>
+
+<!-- 新增頁 -->
+<div class="page" id="page-add">
+  <div class="add-page">
+    <div class="add-card">
+      <div class="add-card-title">新增一首歌</div>
+      <div class="field-wrap">
+        <label class="field-label">歌　曲　名　稱</label>
+        <input class="field" type="text" id="inp-name" placeholder="請輸入歌名" />
+      </div>
+      <div class="field-wrap">
+        <label class="field-label">點　歌　代　號</label>
+        <input class="field" type="text" id="inp-code" placeholder="請輸入代號" inputmode="numeric" />
+      </div>
+      <div class="field-wrap">
+        <label class="field-label">歌　手　／　演唱者</label>
+        <input class="field" type="text" id="inp-artist" placeholder="請輸入歌手（可留空）" />
+      </div>
+    </div>
+    <button class="btn-submit" onclick="addSong()">加 入 歌 單</button>
+    <br><br>
+
+    <!-- 備份管理 -->
+    <div class="backup-card">
+      <div class="backup-card-title">備份管理</div>
+      <div class="backup-actions">
+        <button class="btn-backup btn-export" onclick="exportCSV()">匯　出 CSV</button>
+        <button class="btn-backup btn-import" onclick="triggerImport()">匯　入 CSV</button>
+        <button class="btn-backup btn-clear btn-clear-full" onclick="clearAllSongs()">清空歌單</button>
+      </div>
+    </div>
+    <input type="file" id="import-file-input" accept="text/csv,text/plain,.csv,*/*" onchange="importCSV(event)" />
+
+    <p class="add-tip">長按歌曲一秒可刪除</p>
+  </div>
+</div>
+
+<!-- 單曲全螢幕 -->
+<div class="single" id="single">
+  <div class="single-inner">
+    <div class="single-eyebrow">NOW SINGING</div>
+    <div class="single-name" id="sName"></div>
+    <div class="single-artist" id="sArtist"></div>
+    <div class="single-divider"></div>
+    <div class="single-code-label">SONG CODE</div>
+    <div class="single-code" id="sCode"></div>
+    <button class="btn-back" onclick="exitSingle()">返回歌單</button>
+  </div>
+</div>
+
+<!-- 刪除確認彈窗 -->
+<div class="del-overlay" id="delOverlay" onclick="cancelDelete(event)">
+  <div class="del-sheet">
+    <div class="del-title" id="delTitle"></div>
+    <div class="del-sub">確定要從歌單中移除嗎？</div>
+    <div class="del-actions">
+      <button class="del-confirm" onclick="confirmDelete()">移　除</button>
+      <button class="del-cancel" onclick="hideDeleteSheet()">取　消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 重複歌曲提示彈窗 -->
+<!-- 清空確認彈窗 -->
+<div class="del-overlay" id="clearOverlay" onclick="cancelClear(event)">
+  <div class="del-sheet">
+    <div class="del-title">清空整個歌單？</div>
+    <div class="del-sub">所有歌曲將被永久刪除，建議先匯出備份。</div>
+    <div class="del-actions">
+      <button class="del-confirm" onclick="showPinSheet()">確　認　清　空</button>
+      <button class="del-cancel" onclick="hideClearSheet()">取　消</button>
+    </div>
+  </div>
+</div>
+
+<div class="dup-overlay" id="dupOverlay" onclick="hideDupSheet(event)">
+  <div class="dup-sheet">
+    <div class="dup-title">歌曲已存在</div>
+    <div class="dup-sub" id="dupSub"></div>
+    <button class="dup-ok" onclick="hideDupSheet()">知　道　了</button>
+  </div>
+</div>
+
+<!-- PIN 防呆彈窗 -->
+<div class="pin-overlay" id="pinOverlay">
+  <div class="pin-sheet">
+    <div class="pin-title">請輸入確認密碼</div>
+    <div class="pin-sub">輸入 4 位數字以確認清空</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinInput(1)">1</button>
+      <button class="pin-key" onclick="pinInput(2)">2</button>
+      <button class="pin-key" onclick="pinInput(3)">3</button>
+      <button class="pin-key" onclick="pinInput(4)">4</button>
+      <button class="pin-key" onclick="pinInput(5)">5</button>
+      <button class="pin-key" onclick="pinInput(6)">6</button>
+      <button class="pin-key" onclick="pinInput(7)">7</button>
+      <button class="pin-key" onclick="pinInput(8)">8</button>
+      <button class="pin-key" onclick="pinInput(9)">9</button>
+      <button class="pin-key empty-key"></button>
+      <button class="pin-key" onclick="pinInput(0)">0</button>
+      <button class="pin-key del-key" onclick="pinDelete()">⌫</button>
+    </div>
+    <button class="pin-cancel" onclick="hidePinSheet()">取　消</button>
+  </div>
+</div>
+
+<script>
+  /* ── 資料 ── */
+  const DEFAULT_SONGS = [
+    { name: "青花瓷", artist: "周杰倫", code: "12345" },
+    { name: "告白氣球", artist: "周杰倫", code: "67890" },
+    { name: "月亮代表我的心", artist: "鄧麗君", code: "11111" },
+    { name: "甜蜜蜜", artist: "鄧麗君", code: "22222" },
+  ];
+
+  function loadSongs() {
+    try {
+      const s = localStorage.getItem('ktv_songs_v2');
+      if (s) {
+        const parsed = JSON.parse(s);
+        return parsed.map(x => ({ artist: '', ...x }));
+      }
+      return DEFAULT_SONGS;
+    } catch { return DEFAULT_SONGS; }
+  }
+
+  function saveSongs() {
+    try { localStorage.setItem('ktv_songs_v2', JSON.stringify(songs)); } catch {}
+  }
+
+  let songs = loadSongs();
+  let isClean = false;
+  let deleteTarget = -1;
+  let pressTimer = null;
+  let searchMode = 'song'; // 'song' | 'artist'
+
+  /* ── 搜尋模式切換 ── */
+  function setSearchMode(mode) {
+    searchMode = mode;
+    document.getElementById('modeSong').classList.toggle('active', mode === 'song');
+    document.getElementById('modeArtist').classList.toggle('active', mode === 'artist');
+    const input = document.getElementById('search');
+    if (mode === 'artist') {
+      input.placeholder = '搜尋歌手名稱';
+      document.body.classList.add('search-show-artist');
+    } else {
+      input.placeholder = '搜尋歌名或代號';
+      document.body.classList.remove('search-show-artist');
+    }
+    input.value = '';
+    renderSearch();
+  }
+
+  /* ── 渲染瀏覽列表（全部歌曲） ── */
+  function render() {
+    const list = document.getElementById('list');
+    document.getElementById('songCount').textContent = songs.length + ' 首';
+    if (songs.length === 0) {
+      list.innerHTML = `<div class="empty"><div class="empty-line1">歌單是空的</div><div class="empty-line2">前往新增頁面添加</div></div>`;
+      return;
+    }
+    list.innerHTML =
+      `<div class="list-col-head"><span>歌曲名稱</span><span>代號</span></div>` +
+      songs.map((s, i) => buildItem({ ...s, idx: i }, i)).join('');
+  }
+
+  /* ── 渲染搜尋結果 ── */
+  function renderSearch() {
+    const q = (document.getElementById('search')?.value || '').trim();
+    const list = document.getElementById('search-list');
+
+    if (searchMode === 'artist') {
+      if (!q) {
+        list.innerHTML = `<div class="empty"><div class="empty-line1">輸入歌手名稱</div><div class="empty-line2">搜尋歌單中該歌手的所有歌曲</div></div>`;
+        return;
+      }
+      const filtered = songs.map((s, i) => ({ ...s, idx: i })).filter(s => (s.artist || '').includes(q));
+      if (filtered.length === 0) {
+        list.innerHTML = `<div class="empty"><div class="empty-line1">查無歌手</div><div class="empty-line2">「${q}」不在歌單中</div></div>`;
+        return;
+      }
+      list.innerHTML =
+        `<div class="artist-result-header">歌手：<span>${q}</span>　共 ${filtered.length} 首</div>` +
+        filtered.map((s, i) => buildItem(s, i)).join('');
+    } else {
+      if (!q) {
+        list.innerHTML = `<div class="empty"><div class="empty-line1">輸入關鍵字</div><div class="empty-line2">搜尋歌名或代號</div></div>`;
+        return;
+      }
+      const filtered = songs.map((s, i) => ({ ...s, idx: i })).filter(s => s.name.includes(q) || s.code.includes(q));
+      if (filtered.length === 0) {
+        list.innerHTML = `<div class="empty"><div class="empty-line1">查無結果</div><div class="empty-line2">換個關鍵字試試</div></div>`;
+        return;
+      }
+      list.innerHTML =
+        `<div class="list-col-head"><span>歌曲名稱</span><span>代號</span></div>` +
+        filtered.map((s, i) => buildItem(s, i)).join('');
+    }
+  }
+
+  function buildItem(s, displayIndex) {
+    const artistTag = s.artist
+      ? `<span class="item-artist">${s.artist}</span>`
+      : `<span class="item-artist"></span>`;
+    return `
+      <div class="item"
+        id="item-${s.idx}"
+        data-idx="${s.idx}"
+        onmousedown="startPress(${s.idx})"
+        onmouseup="endPress()"
+        onmouseleave="endPress()"
+        onclick="handleClick(${s.idx})">
+        <span class="item-num">${displayIndex + 1}</span>
+        <span class="item-name">${s.name}</span>
+        ${artistTag}
+        <span class="item-code">${s.code}</span>
+      </div>`;
+  }
+
+  /* ── Touch 事件委派 ── */
+  function bindTouchDelegation(containerId) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+
+    let touchStartY = 0;
+    let touchStartX = 0;
+    let maybeScroll = false;
+
+    el.addEventListener('touchstart', function(e) {
+      const item = e.target.closest('.item');
+      if (!item) return;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      maybeScroll = false;
+      const idx = parseInt(item.dataset.idx);
+      startPress(idx);
+    }, { passive: true });
+
+    el.addEventListener('touchmove', function(e) {
+      const dx = Math.abs(e.touches[0].clientX - touchStartX);
+      const dy = Math.abs(e.touches[0].clientY - touchStartY);
+      if (dy > 6 || dx > 6) {
+        maybeScroll = true;
+        endPress();
+      }
+    }, { passive: true });
+
+    el.addEventListener('touchend',    () => endPress(), { passive: true });
+    el.addEventListener('touchcancel', () => endPress(), { passive: true });
+  }
+
+  /* ── 長按刪除 ── */
+  function startPress(idx) {
+    if (isClean) return;
+    endPress();
+    window.getSelection()?.removeAllRanges();
+    const el = document.getElementById('item-' + idx);
+    if (!el) return;
+    el.classList.add('pressing');
+    pressTimer = setTimeout(() => {
+      endPress();
+      el.classList.add('shake');
+      setTimeout(() => el.classList.remove('shake'), 400);
+      showDeleteSheet(idx);
+    }, 1000);
+  }
+
+  function endPress() {
+    clearTimeout(pressTimer);
+    pressTimer = null;
+    document.querySelectorAll('.item.pressing').forEach(el => el.classList.remove('pressing'));
+  }
+
+  function showDeleteSheet(idx) {
+    deleteTarget = idx;
+    document.getElementById('delTitle').textContent = '「' + songs[idx].name + '」';
+    document.getElementById('delOverlay').classList.add('show');
+  }
+
+  function hideDeleteSheet() {
+    document.getElementById('delOverlay').classList.remove('show');
+    deleteTarget = -1;
+  }
+
+  function cancelDelete(e) {
+    if (e.target === document.getElementById('delOverlay')) hideDeleteSheet();
+  }
+
+  function confirmDelete() {
+    if (deleteTarget < 0) return;
+    songs.splice(deleteTarget, 1);
+    saveSongs();
+    hideDeleteSheet();
+    render();
+    renderSearch();
+  }
+
+  /* ── 點擊歌曲 ── */
+  function handleClick(idx) {
+    if (isClean) return;
+    openSingle(idx);
+  }
+
+  /* ── 重複歌曲提示 ── */
+  function showDupSheet(name, code) {
+    document.getElementById('dupSub').textContent =
+      '「' + name + '」（代號 ' + code + '）\n已在歌單中，不重複新增。';
+    document.getElementById('dupOverlay').classList.add('show');
+  }
+
+  function hideDupSheet(e) {
+    if (e && e.target !== document.getElementById('dupOverlay')) return;
+    document.getElementById('dupOverlay').classList.remove('show');
+  }
+
+  /* ── 新增歌曲 ── */
+  function addSong() {
+    const name = document.getElementById('inp-name').value.trim();
+    const artist = document.getElementById('inp-artist').value.trim();
+    const code = document.getElementById('inp-code').value.trim();
+    if (!name || !code) {
+      alert('請輸入歌名和代號');
+      return;
+    }
+
+    // 重複檢測：名稱與代號皆相同才視為重複
+    const isDup = songs.some(s => s.name === name && s.code === code);
+    if (isDup) {
+      showDupSheet(name, code);
+      return;
+    }
+
+    songs.push({ name, artist, code });
+    saveSongs();
+    document.getElementById('inp-name').value = '';
+    document.getElementById('inp-artist').value = '';
+    document.getElementById('inp-code').value = '';
+    render();
+    switchTab('browse');
+  }
+
+  /* ── 清空歌單 ── */
+  function clearAllSongs() {
+    document.getElementById('clearOverlay').classList.add('show');
+  }
+
+  function hideClearSheet() {
+    document.getElementById('clearOverlay').classList.remove('show');
+  }
+
+  function cancelClear(e) {
+    if (e.target === document.getElementById('clearOverlay')) hideClearSheet();
+  }
+
+  /* ── PIN 防呆 ── */
+  const PIN_CODE = '0000';
+  let pinBuffer = '';
+
+  function showPinSheet() {
+    pinBuffer = '';
+    updatePinDots();
+    hideClearSheet();
+    document.getElementById('pinOverlay').classList.add('show');
+  }
+
+  function hidePinSheet() {
+    pinBuffer = '';
+    updatePinDots();
+    document.getElementById('pinOverlay').classList.remove('show');
+  }
+
+  function updatePinDots() {
+    for (let i = 0; i < 4; i++) {
+      const dot = document.getElementById('pd' + i);
+      dot.classList.remove('filled', 'error');
+      if (i < pinBuffer.length) dot.classList.add('filled');
+    }
+  }
+
+  function pinInput(n) {
+    if (pinBuffer.length >= 4) return;
+    pinBuffer += String(n);
+    updatePinDots();
+    if (pinBuffer.length === 4) {
+      if (pinBuffer === PIN_CODE) {
+        hidePinSheet();
+        songs = [];
+        saveSongs();
+        render();
+        renderSearch();
+      } else {
+        // 錯誤：震動提示後清空
+        for (let i = 0; i < 4; i++) {
+          const dot = document.getElementById('pd' + i);
+          dot.classList.remove('filled');
+          dot.classList.add('error');
+        }
+        setTimeout(() => {
+          pinBuffer = '';
+          updatePinDots();
+        }, 600);
+      }
+    }
+  }
+
+  function pinDelete() {
+    if (pinBuffer.length === 0) return;
+    pinBuffer = pinBuffer.slice(0, -1);
+    updatePinDots();
+  }
+
+  function confirmClear() {
+    // 此函式已由 showPinSheet 取代，保留相容性
+    showPinSheet();
+  }
+
+  /* ── 備份：匯出 CSV ── */
+  function exportCSV() {
+    const BOM = '\uFEFF'; // UTF-8 BOM，讓 Excel 正確辨識中文
+    const header = 'name,artist,code\n';
+    const rows = songs.map(s => {
+      const escape = v => '"' + String(v || '').replace(/"/g, '""') + '"';
+      return [escape(s.name), escape(s.artist), escape(s.code)].join(',');
+    }).join('\n');
+    const blob = new Blob([BOM + header + rows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ktv_歌單_' + new Date().toISOString().slice(0,10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /* ── 備份：觸發匯入 ── */
+  function triggerImport() {
+    document.getElementById('import-file-input').value = '';
+    document.getElementById('import-file-input').click();
+  }
+
+  /* ── 備份：匯入 CSV ── */
+  function importCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        let text = e.target.result;
+        // 移除 BOM
+        if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        if (lines.length < 2) { alert('CSV 格式有誤或內容為空'); return; }
+
+        // 解析標題列
+        const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+        const nameIdx   = headers.indexOf('name');
+        const artistIdx = headers.indexOf('artist');
+        const codeIdx   = headers.indexOf('code');
+
+        if (nameIdx < 0 || codeIdx < 0) {
+          alert('CSV 必須包含 name 和 code 欄位');
+          return;
+        }
+
+        let added = 0, skipped = 0;
+        for (let i = 1; i < lines.length; i++) {
+          const cols = parseCSVLine(lines[i]);
+          const name   = (cols[nameIdx]   || '').trim();
+          const artist = artistIdx >= 0 ? (cols[artistIdx] || '').trim() : '';
+          const code   = (cols[codeIdx]   || '').trim();
+          if (!name || !code) continue;
+          const isDup = songs.some(s => s.name === name && s.code === code);
+          if (isDup) { skipped++; continue; }
+          songs.push({ name, artist, code });
+          added++;
+        }
+
+        saveSongs();
+        render();
+        renderSearch();
+        alert('匯入完成！新增 ' + added + ' 首，略過重複 ' + skipped + ' 首。');
+      } catch (err) {
+        alert('匯入失敗：' + err.message);
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  /* 簡易 CSV 行解析（支援引號包覆） */
+  function parseCSVLine(line) {
+    const result = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (inQ) {
+        if (c === '"' && line[i+1] === '"') { cur += '"'; i++; }
+        else if (c === '"') { inQ = false; }
+        else { cur += c; }
+      } else {
+        if (c === '"') { inQ = true; }
+        else if (c === ',') { result.push(cur); cur = ''; }
+        else { cur += c; }
+      }
+    }
+    result.push(cur);
+    return result;
+  }
+
+  /* ── 字體 / 間距 ── */
+  let currentFont = 34;
+  let currentSpacing = 8;
+
+  // 初始化預設值
+  document.documentElement.style.setProperty('--font-size', currentFont + 'px');
+  document.documentElement.style.setProperty('--item-padding', currentSpacing + 'px');
+  document.documentElement.style.setProperty('--item-spacing', Math.max(2, Math.round(currentSpacing * 0.5)) + 'px');
+
+  function changeFont(d) {
+    currentFont = Math.min(64, Math.max(22, currentFont + d));
+    document.documentElement.style.setProperty('--font-size', currentFont + 'px');
+    document.getElementById('fontDisplay').textContent = currentFont;
+  }
+
+  function changeSpacing(d) {
+    currentSpacing = Math.min(36, Math.max(4, currentSpacing + d));
+    const gap = Math.max(2, Math.round(currentSpacing * 0.5));
+    document.documentElement.style.setProperty('--item-padding', currentSpacing + 'px');
+    document.documentElement.style.setProperty('--item-spacing', gap + 'px');
+    document.getElementById('spacingDisplay').textContent = currentSpacing;
+  }
+
+  let showArtist = false;
+
+  function toggleArtist() {
+    showArtist = !showArtist;
+    document.body.classList.toggle('show-artist', showArtist);
+    document.getElementById('btnArtist').classList.toggle('active', showArtist);
+  }
+
+  /* ── 純覽模式 ── */
+  function toggleClean() {
+    isClean = !isClean;
+    document.body.classList.toggle('clean', isClean);
+    const btn = document.getElementById('btnView');
+    btn.textContent = isClean ? '編輯' : '純覽';
+    btn.classList.toggle('active', isClean);
+    if (isClean) {
+      const active = document.querySelector('.tab.active')?.dataset.tab;
+      if (active === 'add' || active === 'search') switchTab('browse');
+    }
+  }
+
+  /* ── 分頁切換 ── */
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    document.querySelectorAll('.page').forEach(p => p.classList.toggle('show', p.id === 'page-' + name));
+  }
+
+  /* ── 單曲全螢幕 ── */
+  function openSingle(idx) {
+    document.getElementById('sName').textContent = songs[idx].name;
+    document.getElementById('sCode').textContent = songs[idx].code;
+    document.getElementById('sArtist').textContent = songs[idx].artist || '';
+    document.getElementById('single').style.display = 'flex';
+  }
+
+  function exitSingle() {
+    document.getElementById('single').style.display = 'none';
+  }
+
+  render();
+  renderSearch();
+  bindTouchDelegation('list');
+  bindTouchDelegation('search-list');
+
+  /* ── PWA Service Worker 註冊 ── */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
